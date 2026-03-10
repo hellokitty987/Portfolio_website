@@ -8,6 +8,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import TableauEmbed from '../components/TableauEmbed';
 import Footer from '../components/Footer';
+import { canonicalizeProjectCategories, getProjectCategoryLabel } from '../lib/projectCategories';
 
 interface Project {
   id: string;
@@ -25,17 +26,9 @@ interface Project {
   image_gallery_urls: string[];
   pdfs: string[];
   source_code: string;
-  category: string;
+  category: string[];
   source_code_plaintext: string;
 }
-
-const categories = {
-  data_science: 'Data Science',
-  machine_learning: 'Machine Learning',
-  software_development: 'Software Development',
-  solution_diagrams: 'Solution Diagrams',
-  bim: 'BIM',
-};
 
 export default function ProjectDetails() {
   const { slug } = useParams();
@@ -72,7 +65,10 @@ export default function ProjectDetails() {
         .single();
 
       if (error) throw error;
-      setProject(data);
+      setProject({
+        ...data,
+        category: canonicalizeProjectCategories(data.category),
+      });
     } catch (err) {
       console.error('Error fetching project:', err);
       setError('Project not found');
@@ -125,11 +121,18 @@ export default function ProjectDetails() {
 
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-4 text-red-200">{project.title}</h1>
-            <div className="flex items-center gap-4">
-              <span className="px-4 py-1 bg-gray-100 text-sm text-gray-700 rounded-full">
-                {categories[project.category as keyof typeof categories]}
-              </span>
-            </div>
+            {project.category.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3">
+                {project.category.map(category => (
+                  <span
+                    key={category}
+                    className="rounded-full bg-gray-100 px-4 py-1 text-sm text-gray-700"
+                  >
+                    {getProjectCategoryLabel(category)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Detailed Content */}

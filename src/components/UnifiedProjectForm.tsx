@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { FileUpload } from './FileUpload';
 import RichTextEditor from './RichTextEditor';
 import { Loader, X } from 'lucide-react';
+import {
+  PROJECT_CATEGORY_OPTIONS,
+  canonicalizeProjectCategories,
+  getProjectCategoryLabel,
+  isCanonicalProjectCategory,
+} from '../lib/projectCategories';
 
 interface ProjectFormData {
   title: string;
@@ -64,7 +70,7 @@ const UnifiedProjectForm: React.FC<UnifiedProjectFormProps> = ({
       setFormData({
         title: initialData.title || '',
         shortDescription: initialData.shortDescription || '',
-        category: initialData.category || [],
+        category: canonicalizeProjectCategories(initialData.category),
         fullTitle: initialData.fullTitle || '',
         description: initialData.description || '',
         visualizationType: initialData.visualizationType || 'tableau',
@@ -103,6 +109,7 @@ const UnifiedProjectForm: React.FC<UnifiedProjectFormProps> = ({
     e.preventDefault();
     onSubmit({
       ...formData,
+      category: canonicalizeProjectCategories(formData.category),
       thumbnailFile: thumbnailFile || undefined,
       videoFile: videoFile || undefined,
       imageFiles: imageFiles.length > 0 ? imageFiles : undefined,
@@ -132,6 +139,16 @@ const UnifiedProjectForm: React.FC<UnifiedProjectFormProps> = ({
   const removeExistingImage = (index: number) => {
     setExistingImageUrls(prev => prev.filter((_, i) => i !== index));
   };
+
+  const categoryOptions = [
+    ...PROJECT_CATEGORY_OPTIONS,
+    ...formData.category
+      .filter(category => !isCanonicalProjectCategory(category))
+      .map(category => ({
+        value: category,
+        label: `${getProjectCategoryLabel(category)} (Legacy)`,
+      })),
+  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -171,11 +188,11 @@ const UnifiedProjectForm: React.FC<UnifiedProjectFormProps> = ({
             required
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           >
-            <option value="data_science">Data Science</option>
-            <option value="machine_learning">Machine Learning</option>
-            <option value="software_development">Software Development</option>
-            <option value="solution_diagrams">Solution Diagrams</option>
-            <option value="bim">BIM</option>
+            {categoryOptions.map(category => (
+              <option key={category.value} value={category.value}>
+                {category.label}
+              </option>
+            ))}
           </select>
         </div>
 

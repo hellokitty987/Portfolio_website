@@ -4,6 +4,12 @@ import { Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import Footer from '../components/Footer';
+import {
+  PORTFOLIO_CATEGORY_FILTERS,
+  PROJECT_CATEGORY_PRIORITY,
+  canonicalizeProjectCategories,
+  type ProjectCategoryFilter,
+} from '../lib/projectCategories';
 
 interface Project {
   id: string;
@@ -14,27 +20,10 @@ interface Project {
   slug: string;
 }
 
-type Category =
-  | 'all'
-  | 'data_science'
-  | 'machine_learning'
-  | 'software_development'
-  | 'solution_diagrams'
-  | 'bim';
-
-const categories: { value: Category; label: string }[] = [
-  { value: 'all', label: 'Show All' },
-  { value: 'data_science', label: 'Data Science' },
-  { value: 'machine_learning', label: 'Machine Learning' },
-  { value: 'software_development', label: 'Software Development' },
-  { value: 'solution_diagrams', label: 'Solution Diagrams' },
-  { value: 'bim', label: 'BIM' },
-];
-
 export default function Portfolio() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<Category>('all');
+  const [selectedCategory, setSelectedCategory] = useState<ProjectCategoryFilter>('all');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,7 +42,13 @@ export default function Portfolio() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProjects(data || []);
+
+      setProjects(
+        (data || []).map(project => ({
+          ...project,
+          category: canonicalizeProjectCategories(project.category),
+        })),
+      );
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Failed to load projects');
@@ -62,22 +57,17 @@ export default function Portfolio() {
     }
   };
 
-  const categoryPriority: Category[] = [
-    'data_science',
-    'machine_learning',
-    'software_development',
-    'solution_diagrams',
-    'bim',
-  ];
-
   const filteredProjects = projects
     .filter(project => selectedCategory === 'all' || project.category.includes(selectedCategory))
     .sort((a, b) => {
       if (selectedCategory !== 'all') return 0;
 
       const getPriority = (project: Project) => {
-        // Pick the first category that matches the priority list
-        return categoryPriority.findIndex(cat => project.category.includes(cat));
+        const matchingCategory = PROJECT_CATEGORY_PRIORITY.find(category =>
+          project.category.includes(category),
+        );
+
+        return matchingCategory ? PROJECT_CATEGORY_PRIORITY.indexOf(matchingCategory) : 999;
       };
 
       return getPriority(a) - getPriority(b);
@@ -115,7 +105,7 @@ export default function Portfolio() {
         <div className="mb-12 flex justify-center">
           <div className="max-w-full overflow-x-auto">
             <div className="inline-flex overflow-hidden rounded-lg border border-gray-500/40 bg-gray-600/20">
-              {categories.map(({ value, label }) => (
+              {PORTFOLIO_CATEGORY_FILTERS.map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"

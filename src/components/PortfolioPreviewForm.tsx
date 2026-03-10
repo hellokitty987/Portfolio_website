@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { FileUpload } from './FileUpload';
+import {
+  PROJECT_CATEGORY_OPTIONS,
+  canonicalizeProjectCategories,
+} from '../lib/projectCategories';
 
 interface PortfolioPreview {
   title: string;
@@ -20,7 +24,7 @@ const PortfolioPreviewForm: React.FC<PortfolioPreviewFormProps> = ({
   const [preview, setPreview] = useState<PortfolioPreview>({
     title: initialData.title || '',
     shortDescription: initialData.shortDescription || '',
-    category: initialData.category || [],
+    category: canonicalizeProjectCategories(initialData.category),
   });
 
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -29,6 +33,7 @@ const PortfolioPreviewForm: React.FC<PortfolioPreviewFormProps> = ({
     e.preventDefault();
     onSubmit({
       ...preview,
+      category: canonicalizeProjectCategories(preview.category),
       thumbnailFile: thumbnailFile || undefined,
     });
   };
@@ -69,11 +74,11 @@ const PortfolioPreviewForm: React.FC<PortfolioPreviewFormProps> = ({
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
           required
         >
-          <option value="data_science">Data Science</option>
-          <option value="machine_learning">Machine Learning</option>
-          <option value="software_development">Software Development</option>
-          <option value="solution_diagrams">Solution Diagrams</option>
-          <option value="bim">BIM</option>
+          {PROJECT_CATEGORY_OPTIONS.map(category => (
+            <option key={category.value} value={category.value}>
+              {category.label}
+            </option>
+          ))}
         </select>
       </div>
 

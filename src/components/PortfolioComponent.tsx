@@ -5,6 +5,10 @@ import { supabase } from '../lib/supabase';
 import slugify from 'slugify';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import {
+  canonicalizeProjectCategories,
+  getProjectCategoryLabel,
+} from '../lib/projectCategories';
 
 interface Project {
   id: string;
@@ -119,13 +123,15 @@ const PortfolioComponent = ({
       }
 
       // Insert into projects table
+      const normalizedCategories = canonicalizeProjectCategories(data.category);
+
       const { data: project, error } = await supabase
         .from('projects')
         .insert({
           title: data.title,
           slug: slugify(data.title, { lower: true }),
           short_description: data.shortDescription,
-          category: data.category,
+          category: normalizedCategories,
           thumbnail_url: thumbnailUrl,
           full_title: data.fullTitle,
           description: data.description,
@@ -143,7 +149,13 @@ const PortfolioComponent = ({
 
       if (error) throw error;
 
-      setProjects(prev => [project, ...prev]);
+      setProjects(prev => [
+        {
+          ...project,
+          category: canonicalizeProjectCategories(project.category),
+        },
+        ...prev,
+      ]);
       toast.success('Project created successfully!');
       resetForm();
       fetchProjects();
@@ -222,6 +234,7 @@ const PortfolioComponent = ({
       let videoUrl = editingProject.video_url || '';
       let imageUrls = editingProject.image_gallery_urls || [];
       let pdfUrls = editingProject.pdfs || [];
+      const normalizedCategories = canonicalizeProjectCategories(data.category);
 
       // Upload thumbnail if changed
       if (data.thumbnailFile) {
@@ -345,7 +358,7 @@ const PortfolioComponent = ({
           title: data.title,
           slug: slugify(data.title, { lower: true }),
           short_description: data.shortDescription,
-          category: data.category,
+          category: normalizedCategories,
           thumbnail_url: thumbnailUrl,
           full_title: data.fullTitle,
           description: data.description,
@@ -364,7 +377,14 @@ const PortfolioComponent = ({
       if (error) throw error;
 
       setProjects(
-        projects.map(project => (project.id === editingProject.id ? updatedProject : project))
+        projects.map(project =>
+          project.id === editingProject.id
+            ? {
+                ...updatedProject,
+                category: canonicalizeProjectCategories(updatedProject.category),
+              }
+            : project
+        )
       );
 
       toast.success('Project updated successfully!');
@@ -434,7 +454,7 @@ const PortfolioComponent = ({
               ? {
                   title: editingProject.title,
                   shortDescription: editingProject.short_description,
-                  category: editingProject.category,
+                  category: canonicalizeProjectCategories(editingProject.category),
                   fullTitle: editingProject.full_title,
                   description: editingProject.description,
                   visualizationType: editingProject.visualization_type,
@@ -475,12 +495,12 @@ const PortfolioComponent = ({
                 </div>
                 <p className="mt-1 text-gray-600">{project.short_description}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {project.category?.map(cat => (
+                  {canonicalizeProjectCategories(project.category).map(category => (
                     <span
-                      key={cat}
-                      className="px-2 py-1 text-xs font-medium text-red-300 bg-red-100 rounded-full"
+                      key={category}
+                      className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700"
                     >
-                      {cat}
+                      {getProjectCategoryLabel(category)}
                     </span>
                   ))}
                 </div>
