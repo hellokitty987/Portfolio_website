@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase';
 import RichTextEditor from '../components/RichTextEditor';
 import { FileUpload } from '../components/FileUpload';
 import PortfolioComponent from '../components/PortfolioComponent';
+import ProfileSettingsSection from '../components/ProfileSettingsSection';
 import toast from 'react-hot-toast';
 
 interface Message {
@@ -51,12 +52,6 @@ interface AboutSection {
   order: number;
 }
 
-interface Resume {
-  id: string;
-  content: string;
-  is_published: boolean;
-}
-
 interface Credential {
   id: string;
   title: string;
@@ -69,7 +64,7 @@ interface Credential {
 const Admin: React.FC = () => {
   // State declarations
   const [activeTab, setActiveTab] = useState<
-    'messages' | 'portfolio' | 'about' | 'resume' | 'credentials'
+    'messages' | 'profile' | 'portfolio' | 'about' | 'resume' | 'credentials'
   >('messages');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +78,6 @@ const Admin: React.FC = () => {
     content: '',
     order: 0,
   });
-  const [resume, setResume] = useState<Resume | null>(null);
   const [resumeContent, setResumeContent] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [credentials, setCredentials] = useState<Credential[]>([]);
@@ -95,9 +89,45 @@ const Admin: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log('resumeFile ', resumeFile);
   useEffect(() => {
-    fetchData();
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session) {
+          throw new Error('Not authenticated');
+        }
+
+        switch (activeTab) {
+          case 'messages':
+            await fetchMessages();
+            break;
+          case 'profile':
+            break;
+          case 'portfolio':
+            await fetchProjects();
+            break;
+          case 'about':
+            await fetchAboutSections();
+            break;
+          case 'resume':
+            await fetchResume();
+            break;
+          case 'credentials':
+            await fetchCredentials();
+            break;
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadData();
   }, [activeTab]);
 
   console.log('aboutSections', aboutSections);
@@ -116,41 +146,6 @@ const Admin: React.FC = () => {
       }
     } catch (error) {
       console.log('error', error);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        throw new Error('Not authenticated');
-      }
-
-      switch (activeTab) {
-        case 'messages':
-          await fetchMessages();
-          break;
-        case 'portfolio':
-          await fetchProjects();
-          break;
-        case 'about':
-          await fetchAboutSections();
-          break;
-        case 'resume':
-          await fetchResume();
-          break;
-        case 'credentials':
-          await fetchCredentials();
-          break;
-      }
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -190,7 +185,6 @@ const Admin: React.FC = () => {
     if (error) throw error;
 
     console.log('resume data', data);
-    setResume(data);
     setResumeContent(data?.content || '');
     setResumeFile(data?.file_url ? new File([data.file_url], data.file_name) : null);
   };
@@ -308,41 +302,6 @@ const Admin: React.FC = () => {
       setAboutSections(updatedSections);
     } catch (err) {
       console.error('Error deleting section:', err);
-    }
-  };
-
-  // Resume actions
-  const updateResume = async () => {
-    try {
-      let resumeId = resume?.id;
-
-      if (!resumeId) {
-        const { data: newResume, error: insertError } = await supabase
-          .from('resumes')
-          .insert({
-            content: resumeContent,
-            is_published: true,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        resumeId = newResume.id;
-      } else {
-        const { error: updateError } = await supabase
-          .from('resumes')
-          .update({
-            content: resumeContent,
-            is_published: true,
-          })
-          .eq('id', resumeId);
-
-        if (updateError) throw updateError;
-      }
-
-      await fetchResume();
-    } catch (err) {
-      console.error('Error updating resume:', err);
     }
   };
 
@@ -574,19 +533,21 @@ const Admin: React.FC = () => {
 
       {/* Navigation Tabs */}
       <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
-        {(['messages', 'portfolio', 'about', 'resume', 'credentials'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              activeTab === tab
-                ? 'bg-red-200 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
+        {(['messages', 'profile', 'portfolio', 'about', 'resume', 'credentials'] as const).map(
+          tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                activeTab === tab
+                  ? 'bg-red-200 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ),
+        )}
       </div>
 
       {/* Content Sections */}
@@ -662,6 +623,8 @@ const Admin: React.FC = () => {
             setProjects={setProjects}
           />
         )}
+        {/* Profile Section */}
+        {activeTab === 'profile' && <ProfileSettingsSection />}
         {/* About Section */}
         {activeTab === 'about' && (
           <>

@@ -12,28 +12,31 @@ import Admin from './pages/Admin';
 import Login from './pages/Login';
 import ProjectDetails from './pages/ProjectDetails';
 import { Toaster } from 'react-hot-toast';
+import { ProfileSettingsProvider } from './context/ProfileSettingsProvider';
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-black flex">
-        <Sidebar />
+    <ProfileSettingsProvider>
+      <Router>
+        <div className="min-h-screen bg-black flex">
+          <Sidebar />
 
-        <main className="flex-1 overflow-y-auto">
-          <Toaster position="top-right" />
-          <Routes>
-            <Route path="/" element={<About />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/resume" element={<Resume />} />
-            <Route path="/credentials" element={<Credentials />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/project/:slug" element={<ProjectDetails />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+          <main className="flex-1 overflow-y-auto">
+            <Toaster position="top-right" />
+            <Routes>
+              <Route path="/" element={<About />} />
+              <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/resume" element={<Resume />} />
+              <Route path="/credentials" element={<Credentials />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/project/:slug" element={<ProjectDetails />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </ProfileSettingsProvider>
   );
 }
 
