@@ -30,6 +30,12 @@ export default function GeometricBackground() {
       return { r, g, b };
     };
 
+    const brightenColor = (color: { r: number; g: number; b: number }, amount: number) => ({
+      r: Math.min(255, color.r + amount),
+      g: Math.min(255, color.g + amount),
+      b: Math.min(255, color.b + amount),
+    });
+
     class Particle {
       x: number;
       y: number;
@@ -109,6 +115,7 @@ export default function GeometricBackground() {
       }
 
       const currentColor = interpolateColor(colorProgress);
+      const lineColor = brightenColor(currentColor, 18);
 
       // Update and draw particles
       particles.forEach(particle => {
@@ -131,12 +138,13 @@ export default function GeometricBackground() {
               (particles[i].centerDistance + particles[j].centerDistance) / (canvas.width + canvas.height),
               1
             );
-            const opacity = (1 - distance / maxDistance) * 0.3 * (0.5 + centerFactor * 0.5);
+            const opacity = (1 - distance / maxDistance) * 0.42 * (0.55 + centerFactor * 0.45);
 
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(${currentColor.r}, ${currentColor.g}, ${currentColor.b}, ${opacity})`;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(${lineColor.r}, ${lineColor.g}, ${lineColor.b}, ${opacity})`;
             ctx.stroke();
           }
         }
