@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { FileDown, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ReactMarkdown from 'react-markdown';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import Footer from '../components/Footer';
+import PdfPageStack from '../components/PdfPageStack';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -88,66 +89,75 @@ export default function Resume() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-4xl mx-auto"
+        className="mx-auto w-full max-w-4xl"
       >
-        <div className="bg-white rounded-lg shadow-md my-8">
-          {resumeFile && (
-            <div className="flex justify-end p-2">
+        {resume?.content ? (
+          <div className="my-8 rounded-lg bg-white p-8 shadow-md">
+            {resumeFile && (
+              <div className="mb-4 flex justify-end">
+                <a
+                  href={resumeFile.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 rounded-md border border-red-400 px-3 py-1 text-sm text-red-400 transition-colors hover:bg-red-50"
+                  download={resumeFile.file_name}
+                >
+                  <FileDown size={16} />
+                  <span>Download PDF</span>
+                </a>
+              </div>
+            )}
+
+            <div className="prose max-w-none text-gray-900">
+              <ReactMarkdown>{resume.content}</ReactMarkdown>
+            </div>
+          </div>
+        ) : resumeFile ? (
+          <div className="my-8 px-2 sm:px-0">
+            <div className="mb-4 flex justify-end">
               <a
                 href={resumeFile.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 px-3 py-1 text-sm border border-red-400 text-red-400 rounded-md hover:bg-red-50 transition-colors"
+                className="flex items-center gap-1 rounded-md border border-red-300 px-3 py-1 text-sm text-red-200 transition-colors hover:bg-white/10"
                 download={resumeFile.file_name}
               >
                 <FileDown size={16} />
                 <span>Download PDF</span>
               </a>
             </div>
-          )}
 
-          <div className="p-8 pt-0">
-            {resume?.content ? (
-              <div className="prose max-w-none text-gray-900">
-                <ReactMarkdown>{resume.content}</ReactMarkdown>
-              </div>
-            ) : resumeFile ? (
-              <div className="flex flex-col items-center">
-                <Document
-                  file={resumeFile.file_url}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                  onLoadError={onDocumentLoadError}
-                  loading={
-                    <div className="flex items-center justify-center py-12">
-                      <Loader className="animate-spin h-8 w-8 text-gray-500" />
-                    </div>
-                  }
-                  className="max-w-full"
-                >
-                  {pdfError ? (
-                    <div className="text-center py-12">
-                      <p className="text-red-600 mb-4">{pdfError}</p>
-                    </div>
-                  ) : (
-                    Array.from(new Array(numPages), (el, index) => (
-                      <Page
-                        key={`page_${index + 1}`}
-                        pageNumber={index + 1}
-                        width={Math.min(window.innerWidth - 64, 800)}
-                        renderTextLayer={true}
-                        renderAnnotationLayer={true}
-                      />
-                    ))
-                  )}
-                </Document>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No resume content available yet.</p>
-              </div>
-            )}
+            <div className="flex flex-col items-center">
+              <Document
+                file={resumeFile.file_url}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                loading={
+                  <div className="flex items-center justify-center py-12">
+                    <Loader className="h-8 w-8 animate-spin text-gray-500" />
+                  </div>
+                }
+                className="max-w-full"
+              >
+                {pdfError ? (
+                  <div className="text-center py-12">
+                    <p className="mb-4 text-red-400">{pdfError}</p>
+                  </div>
+                ) : (
+                  <PdfPageStack
+                    pageCount={numPages || 0}
+                    pageKeyPrefix="resume-page"
+                    width={Math.min(window.innerWidth - 64, 800)}
+                  />
+                )}
+              </Document>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="my-8 text-center py-12">
+            <p className="text-gray-400">No resume content available yet.</p>
+          </div>
+        )}
       </motion.div>
       <Footer />
     </div>

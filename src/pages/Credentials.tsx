@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileDown, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import Footer from '../components/Footer';
@@ -11,6 +11,7 @@ import {
   getCredentialDisplayName,
   getCredentialTypeLabel,
 } from '../lib/credentialFiles';
+import PdfPageStack from '../components/PdfPageStack';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -85,7 +86,7 @@ export default function Credentials() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-4xl mx-auto"
+        className="mx-auto w-full max-w-4xl"
       >
         <h1 className="text-4xl font-bold my-8 text-red-200">Credentials</h1>
 
@@ -96,31 +97,31 @@ export default function Credentials() {
         ) : (
           <div className="space-y-8 mb-8">
             {credentials.map(credential => (
-              <section key={credential.id} className="overflow-hidden rounded-lg bg-white shadow-md">
-                <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      {getCredentialDisplayName(credential)}
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {[getCredentialTypeLabel(credential), formatCredentialSize(credential.size)]
-                        .filter(Boolean)
-                        .join(' • ')}
-                    </p>
-                  </div>
-                  <a
-                    href={credential.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  >
-                    <FileDown size={16} />
-                    Open File
-                  </a>
-                </div>
+              <section key={credential.id}>
+                {credential.content_type === 'application/pdf' ? (
+                  <div className="px-2 sm:px-0">
+                    <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h2 className="text-xl font-semibold text-white">
+                          {getCredentialDisplayName(credential)}
+                        </h2>
+                        <p className="mt-1 text-sm text-gray-400">
+                          {[getCredentialTypeLabel(credential), formatCredentialSize(credential.size)]
+                            .filter(Boolean)
+                            .join(' • ')}
+                        </p>
+                      </div>
+                      <a
+                        href={credential.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-white/10"
+                      >
+                        <FileDown size={16} />
+                        Open File
+                      </a>
+                    </div>
 
-                <div className="p-6">
-                  {credential.content_type === 'application/pdf' ? (
                     <div className="flex flex-col items-center">
                       <Document
                         file={credential.file_url}
@@ -135,32 +136,53 @@ export default function Credentials() {
                       >
                         {pdfErrors[credential.id] ? (
                           <div className="text-center py-12">
-                            <p className="mb-4 text-red-600">{pdfErrors[credential.id]}</p>
+                            <p className="mb-4 text-red-400">{pdfErrors[credential.id]}</p>
                           </div>
                         ) : (
-                          Array.from(new Array(pdfPageCounts[credential.id] || 0), (_, index) => (
-                            <Page
-                              key={`${credential.id}-page-${index + 1}`}
-                              pageNumber={index + 1}
-                              width={Math.min(window.innerWidth - 64, 800)}
-                              renderTextLayer={true}
-                              renderAnnotationLayer={true}
-                              className="mb-6"
-                            />
-                          ))
+                          <PdfPageStack
+                            pageCount={pdfPageCounts[credential.id] || 0}
+                            pageKeyPrefix={credential.id}
+                            width={Math.min(window.innerWidth - 64, 800)}
+                          />
                         )}
                       </Document>
                     </div>
-                  ) : (
-                    <div className="flex justify-center">
-                      <img
-                        src={credential.file_url}
-                        alt={getCredentialDisplayName(credential)}
-                        className="max-w-full h-auto rounded-lg"
-                      />
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-lg bg-white shadow-md">
+                    <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h2 className="text-xl font-semibold text-gray-900">
+                          {getCredentialDisplayName(credential)}
+                        </h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {[getCredentialTypeLabel(credential), formatCredentialSize(credential.size)]
+                            .filter(Boolean)
+                            .join(' • ')}
+                        </p>
+                      </div>
+                      <a
+                        href={credential.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                      >
+                        <FileDown size={16} />
+                        Open File
+                      </a>
                     </div>
-                  )}
-                </div>
+
+                    <div className="p-6">
+                      <div className="flex justify-center">
+                        <img
+                          src={credential.file_url}
+                          alt={getCredentialDisplayName(credential)}
+                          className="max-w-full h-auto rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </section>
             ))}
           </div>
