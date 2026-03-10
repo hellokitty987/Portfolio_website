@@ -12,6 +12,7 @@ import {
   getCredentialTypeLabel,
 } from '../lib/credentialFiles';
 import PdfPageStack from '../components/PdfPageStack';
+import PublicPageHeading from '../components/PublicPageHeading';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -88,7 +89,7 @@ export default function Credentials() {
         transition={{ duration: 0.5 }}
         className="mx-auto w-full max-w-4xl"
       >
-        <h1 className="text-4xl font-bold my-8 text-red-200">Credentials</h1>
+        <PublicPageHeading title="Credentials" className="my-8" />
 
         {credentials.length === 0 ? (
           <div className="text-center py-12">

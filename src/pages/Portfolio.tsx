@@ -4,6 +4,7 @@ import { Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import Footer from '../components/Footer';
+import PublicPageHeading from '../components/PublicPageHeading';
 import {
   PORTFOLIO_CATEGORY_FILTERS,
   PROJECT_CATEGORY_PRIORITY,
@@ -99,7 +100,7 @@ export default function Portfolio() {
         transition={{ duration: 0.5 }}
         className="max-w-full mx-auto py-12 px-4 sm:px-6 lg:px-8"
       >
-        <h1 className="text-4xl font-bold mb-8 text-center text-gray-100">Portfolio</h1>
+        <PublicPageHeading title="Portfolio" className="mb-8 text-gray-100" />
 
         {/* Category Filter */}
         <div className="mb-12 flex justify-center">

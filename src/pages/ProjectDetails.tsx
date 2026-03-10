@@ -9,6 +9,7 @@ import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import TableauEmbed from '../components/TableauEmbed';
 import Footer from '../components/Footer';
 import { canonicalizeProjectCategories, getProjectCategoryLabel } from '../lib/projectCategories';
+import PublicPageHeading from '../components/PublicPageHeading';
 
 interface Project {
   id: string;
@@ -119,10 +120,10 @@ export default function ProjectDetails() {
             Back to Portfolio
           </button>
 
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-4 text-red-200">{project.title}</h1>
+          <div className="mb-8 text-center">
+            <PublicPageHeading title={project.title} className="mb-4" />
             {project.category.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 {project.category.map(category => (
                   <span
                     key={category}

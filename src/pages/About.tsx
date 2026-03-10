@@ -5,6 +5,7 @@ import { Loader, AlertCircle } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import GeometricBackground from '../components/GeometricBackground';
 import Footer from '../components/Footer';
+import PublicPageHeading from '../components/PublicPageHeading';
 
 interface AboutSection {
   id: string;
@@ -120,7 +121,7 @@ export default function About() {
         transition={{ duration: 0.5 }}
         className="max-w-3xl mx-auto relative z-10 p-8"
       >
-        <h1 className="text-4xl font-bold mb-8 text-red-200">About Me</h1>
+        <PublicPageHeading title="About Me" className="mb-8" />
 
         <div className="prose prose-lg max-w-none prose-invert">
           {sortedSections.map(section => {

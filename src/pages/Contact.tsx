@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Footer from '../components/Footer';
+import PublicPageHeading from '../components/PublicPageHeading';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -65,7 +66,7 @@ export default function Contact() {
         transition={{ duration: 0.5 }}
         className="max-w-2xl w-full mx-auto"
       >
-        <h1 className="text-4xl font-bold my-8 text-red-200">Contact</h1>
+        <PublicPageHeading title="Contact" className="my-8" />
 
         {success && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">

@@ -8,6 +8,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import Footer from '../components/Footer';
 import PdfPageStack from '../components/PdfPageStack';
+import PublicPageHeading from '../components/PublicPageHeading';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -91,8 +92,10 @@ export default function Resume() {
         transition={{ duration: 0.5 }}
         className="mx-auto w-full max-w-4xl"
       >
+        <PublicPageHeading title="Resume" className="mb-8 mt-8" />
+
         {resume?.content ? (
-          <div className="my-8 rounded-lg bg-white p-8 shadow-md">
+          <div className="mb-8 rounded-lg bg-white p-8 shadow-md">
             {resumeFile && (
               <div className="mb-4 flex justify-end">
                 <a
@@ -113,7 +116,7 @@ export default function Resume() {
             </div>
           </div>
         ) : resumeFile ? (
-          <div className="my-8 px-2 sm:px-0">
+          <div className="mb-8 px-2 sm:px-0">
             <div className="mb-4 flex justify-end">
               <a
                 href={resumeFile.file_url}
@@ -154,7 +157,7 @@ export default function Resume() {
             </div>
           </div>
         ) : (
-          <div className="my-8 text-center py-12">
+          <div className="mb-8 text-center py-12">
             <p className="text-gray-400">No resume content available yet.</p>
           </div>
         )}
