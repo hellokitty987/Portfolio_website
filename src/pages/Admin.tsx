@@ -19,6 +19,11 @@ import { FileUpload } from '../components/FileUpload';
 import PortfolioComponent from '../components/PortfolioComponent';
 import ProfileSettingsSection from '../components/ProfileSettingsSection';
 import toast from 'react-hot-toast';
+import {
+  formatCredentialSize,
+  getCredentialDisplayName,
+  getCredentialTypeLabel,
+} from '../lib/credentialFiles';
 
 interface Message {
   id: string;
@@ -57,6 +62,9 @@ interface Credential {
   title: string;
   content: string;
   file_url: string;
+  file_name?: string | null;
+  content_type?: string | null;
+  size?: number | null;
   type: 'degree' | 'transcript';
   is_published: boolean;
 }
@@ -82,12 +90,11 @@ const Admin: React.FC = () => {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [newCredential, setNewCredential] = useState({
-    title: '',
-    content: '',
     type: 'degree' as 'degree' | 'transcript',
     file: null as File | null,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const hasCredentialFile = Boolean(newCredential.file);
 
   useEffect(() => {
     const loadData = async () => {
@@ -422,12 +429,18 @@ const Admin: React.FC = () => {
         data: { publicUrl },
       } = supabase.storage.from('credentials').getPublicUrl(filePath);
 
+      const derivedTitle = getCredentialDisplayName({
+        file_name: newCredential.file.name,
+      });
+
       const { data, error: insertError } = await supabase
         .from('academic_credentials')
         .insert({
-          title: newCredential.title,
-          content: newCredential.content,
+          title: derivedTitle,
+          content: '',
+          file_name: newCredential.file.name,
           content_type: newCredential.file.type,
+          size: newCredential.file.size,
           type: newCredential.type,
           file_url: publicUrl,
           is_published: true,
@@ -438,13 +451,13 @@ const Admin: React.FC = () => {
 
       setCredentials([data[0], ...credentials]);
       setNewCredential({
-        title: '',
         type: 'degree',
-        content: '',
         file: null,
       });
+      toast.success('Credential uploaded successfully');
     } catch (err) {
       console.error('Error uploading credential:', err);
+      toast.error('Failed to upload credential');
     } finally {
       setIsLoading(false);
     }
@@ -495,7 +508,7 @@ const Admin: React.FC = () => {
       setCredentials(credentials.filter(c => c.id !== credentialId));
     } catch (err) {
       console.error('Error deleting credential:', err);
-      // You might want to add user feedback here
+      toast.error('Failed to delete credential');
     } finally {
       setIsLoading(false);
     }
@@ -845,27 +858,16 @@ const Admin: React.FC = () => {
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Credential</h3>
               <div className="space-y-4">
-                <div className="flex flex-col gap-3">
-                  <label className="block text-sm font-medium text-gray-700">Title</label>
-                  <input
-                    type="text"
-                    value={newCredential.title}
-                    onChange={e => setNewCredential({ ...newCredential, title: e.target.value })}
-                    className="border border-gray-300 rounded-md p-2"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <label className="block text-sm font-medium text-gray-700">Description</label>
-                  <RichTextEditor
-                    content={newCredential.content}
-                    onChange={content => setNewCredential({ ...newCredential, content })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">File</label>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-900">
+                      Upload File
+                    </h4>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Credentials now use file metadata automatically. The uploaded file name will
+                      be used as the visible label.
+                    </p>
+                  </div>
                   <FileUpload
                     accept={{
                       'application/pdf': ['.pdf'],
@@ -874,19 +876,32 @@ const Admin: React.FC = () => {
                     maxFiles={1}
                     onFileSelect={files => {
                       if (files[0]) {
-                        setNewCredential({ ...newCredential, file: files[0] });
+                        setNewCredential(current => ({ ...current, file: files[0] }));
                       }
                     }}
                     selectedFiles={newCredential.file ? [newCredential.file] : []}
-                    onRemoveFile={() => setNewCredential({ ...newCredential, file: null })}
+                    onRemoveFile={() => setNewCredential(current => ({ ...current, file: null }))}
                     label="credential file"
                   />
+                  {newCredential.file && (
+                    <div className="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                      <p className="text-sm font-medium text-gray-900">
+                        {getCredentialDisplayName({ file_name: newCredential.file.name })}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {[getCredentialTypeLabel({ content_type: newCredential.file.type, file_name: newCredential.file.name }), formatCredentialSize(newCredential.file.size)]
+                          .filter(Boolean)
+                          .join(' • ')}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <button
+                  type="button"
                   onClick={uploadCredential}
-                  disabled={!newCredential.title || !newCredential.file || isLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-200 hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!hasCredentialFile || isLoading}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-semibold text-gray-900 bg-red-200 hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:hover:bg-gray-200"
                 >
                   {isLoading ? (
                     <Loader className="animate-spin h-4 w-4 mr-2" />
@@ -905,23 +920,43 @@ const Admin: React.FC = () => {
               ) : (
                 credentials.map(credential => (
                   <div key={credential.id} className="p-6">
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-5 rounded-xl border border-gray-200 bg-gray-50/60 p-5 md:flex-row md:items-start md:justify-between">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">{credential.title}</h3>
-                        <div
-                          className="prose max-w-none mt-2"
-                          dangerouslySetInnerHTML={{ __html: credential.content }}
-                        />
-                        <p className="mt-2 text-sm text-gray-500">
-                          Status: {credential.is_published ? 'Published' : 'Hidden'}
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {getCredentialDisplayName(credential)}
+                          </h3>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              credential.is_published
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            {credential.is_published ? 'Published' : 'Hidden'}
+                          </span>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-600">
+                            {credential.type === 'degree' ? 'Degree' : 'Transcript'}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600">
+                          {[
+                            getCredentialTypeLabel(credential),
+                            formatCredentialSize(credential.size),
+                          ]
+                            .filter(Boolean)
+                            .join(' • ')}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {credential.file_name || 'Legacy credential without stored file name'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 md:justify-end">
                         <button
                           onClick={() =>
                             toggleCredentialVisibility(credential.id, credential.is_published)
                           }
-                          className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-red-200 hover:text-red-300 transition-colors"
+                          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-gray-100"
                         >
                           {credential.is_published ? (
                             <>
@@ -939,13 +974,14 @@ const Admin: React.FC = () => {
                           href={credential.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-red-200 hover:text-red-300 transition-colors"
+                          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-gray-100"
                         >
+                          <Eye size={16} />
                           View File
                         </a>
                         <button
                           onClick={() => deleteCredential(credential.id, credential.file_url)}
-                          className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-red-200 hover:text-red-300 transition-colors"
+                          className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition-colors hover:bg-red-100"
                         >
                           <Trash2 size={16} />
                           Delete
