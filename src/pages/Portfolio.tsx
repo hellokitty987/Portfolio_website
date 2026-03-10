@@ -109,26 +109,31 @@ export default function Portfolio() {
         transition={{ duration: 0.5 }}
         className="max-w-full mx-auto py-12 px-4 sm:px-6 lg:px-8"
       >
-        <h1 className="text-4xl font-bold mb-8 text-center text-red-200">Portfolio</h1>
+        <h1 className="text-4xl font-bold mb-8 text-center text-gray-100">Portfolio</h1>
 
         {/* Category Filter */}
-        <div className="flex flex-wrap justify-center gap-1.5 mb-12">
-          {categories.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setSelectedCategory(value)}
-              className={`
-        px-6 py-2 rounded-lg transition-colors
+        <div className="mb-12 flex justify-center">
+          <div className="max-w-full overflow-x-auto">
+            <div className="inline-flex overflow-hidden rounded-lg border border-gray-500/40 bg-gray-600/20">
+              {categories.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setSelectedCategory(value)}
+                  className={`
+        border-r border-gray-500/30 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 last:border-r-0
         ${
           selectedCategory === value
-            ? 'bg-red-400 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-gray-600 text-white'
+            : 'bg-transparent text-gray-200 hover:bg-gray-500/25 hover:text-white'
         }
       `}
-            >
-              {label}
-            </button>
-          ))}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Project Grid */}
@@ -137,19 +142,26 @@ export default function Portfolio() {
             <Link
               key={project.id}
               to={`/project/${project.slug}`}
-              className="group relative aspect-[4/3] overflow-hidden bg-gray-100"
+              className="group relative aspect-[4/3] overflow-hidden bg-gray-600/15"
             >
               {/* Thumbnail */}
               <img
                 src={project.thumbnail_url}
                 alt={project.title}
-                className="w-full h-full object-contain"
+                className="h-full w-full object-contain"
               />
 
               {/* Hover Overlay */}
-              <div className="absolute inset-0 bg-red-400 bg-opacity-80 flex flex-col justify-center p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <h3 className="text-xl font-semibold text-white mb-2">{project.title}</h3>
-                <p className="text-white text-sm line-clamp-3">{project.short_description}</p>
+              <div className="pointer-events-none absolute inset-0 z-10 bg-gray-700 opacity-0 transition-opacity duration-200 group-hover:opacity-75" />
+              <div className="pointer-events-none absolute inset-0 z-20 flex items-end p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                <div className="max-w-full">
+                  <h3 className="mb-1 line-clamp-2 text-base font-semibold leading-snug text-white">
+                    {project.title}
+                  </h3>
+                  <p className="line-clamp-2 text-xs leading-relaxed text-gray-100">
+                    {project.short_description}
+                  </p>
+                </div>
               </div>
             </Link>
           ))}
