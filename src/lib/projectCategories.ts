@@ -15,6 +15,44 @@ const CANONICAL_CATEGORY_LABELS: Record<ProjectCategory, string> = {
   bim: 'BIM',
 };
 
+const CATEGORY_BADGE_STYLES: Record<ProjectCategory, string> = {
+  data_science_ml: 'border border-sky-200 bg-sky-50 text-sky-700',
+  software_development: 'border border-violet-200 bg-violet-50 text-violet-700',
+  data_engineering_system_design:
+    'border border-amber-200 bg-amber-50 text-amber-700',
+  bim: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+};
+
+const CATEGORY_SECTION_STYLES: Record<
+  ProjectCategory,
+  {
+    shell: string;
+    accent: string;
+    countBadge: string;
+  }
+> = {
+  data_science_ml: {
+    shell: 'border-sky-200/80 bg-sky-50/45',
+    accent: 'bg-sky-500',
+    countBadge: 'bg-sky-100 text-sky-700',
+  },
+  software_development: {
+    shell: 'border-violet-200/80 bg-violet-50/45',
+    accent: 'bg-violet-500',
+    countBadge: 'bg-violet-100 text-violet-700',
+  },
+  data_engineering_system_design: {
+    shell: 'border-amber-200/80 bg-amber-50/45',
+    accent: 'bg-amber-500',
+    countBadge: 'bg-amber-100 text-amber-700',
+  },
+  bim: {
+    shell: 'border-emerald-200/80 bg-emerald-50/45',
+    accent: 'bg-emerald-500',
+    countBadge: 'bg-emerald-100 text-emerald-700',
+  },
+};
+
 const LEGACY_CATEGORY_MAP: Record<string, ProjectCategory> = {
   data_science: 'data_science_ml',
   machine_learning: 'data_science_ml',
@@ -85,4 +123,28 @@ export const getProjectCategoryLabel = (category: string) => {
     .filter(Boolean)
     .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ');
+};
+
+export const getProjectCategoryBadgeClassName = (category: string) => {
+  const canonicalCategory = canonicalizeProjectCategory(category);
+
+  if (canonicalCategory) {
+    return CATEGORY_BADGE_STYLES[canonicalCategory];
+  }
+
+  return 'border border-gray-200 bg-gray-100 text-gray-700';
+};
+
+export const getProjectCategorySectionStyles = (category: string) => {
+  const canonicalCategory = canonicalizeProjectCategory(category);
+
+  if (canonicalCategory) {
+    return CATEGORY_SECTION_STYLES[canonicalCategory];
+  }
+
+  return {
+    shell: 'border-gray-200 bg-gray-50',
+    accent: 'bg-gray-400',
+    countBadge: 'bg-gray-100 text-gray-700',
+  };
 };

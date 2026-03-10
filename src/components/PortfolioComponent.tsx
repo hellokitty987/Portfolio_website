@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import UnifiedProjectForm from './UnifiedProjectForm';
-import { Eye, EyeOff, Trash2, Edit, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, EyeOff, Trash2, Edit, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import slugify from 'slugify';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import {
+  PROJECT_CATEGORY_PRIORITY,
   canonicalizeProjectCategories,
+  getProjectCategoryBadgeClassName,
   getProjectCategoryLabel,
+  getProjectCategorySectionStyles,
 } from '../lib/projectCategories';
 
 interface Project {
@@ -28,6 +31,12 @@ interface Project {
   pdfs?: string[];
 }
 
+type ProjectGroup = {
+  key: string;
+  label: string;
+  projects: Project[];
+};
+
 const PortfolioComponent = ({
   fetchProjects,
   projects,
@@ -42,6 +51,7 @@ const PortfolioComponent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   const resetForm = () => {
     setEditingProject(null);
@@ -422,6 +432,54 @@ const PortfolioComponent = ({
     }
   };
 
+  const projectGroups = projects.reduce<ProjectGroup[]>((groups, project) => {
+    const normalizedCategories = canonicalizeProjectCategories(project.category);
+    const primaryCategory =
+      PROJECT_CATEGORY_PRIORITY.find(category => normalizedCategories.includes(category)) ??
+      normalizedCategories[0] ??
+      'uncategorized';
+
+    const existingGroup = groups.find(group => group.key === primaryCategory);
+
+    if (existingGroup) {
+      existingGroup.projects.push(project);
+      return groups;
+    }
+
+    groups.push({
+      key: primaryCategory,
+      label:
+        primaryCategory === 'uncategorized'
+          ? 'Uncategorized'
+          : getProjectCategoryLabel(primaryCategory),
+      projects: [project],
+    });
+
+    return groups;
+  }, []);
+
+  projectGroups.sort((leftGroup, rightGroup) => {
+    const leftIndex =
+      leftGroup.key === 'uncategorized'
+        ? Number.POSITIVE_INFINITY
+        : PROJECT_CATEGORY_PRIORITY.indexOf(leftGroup.key as (typeof PROJECT_CATEGORY_PRIORITY)[number]);
+    const rightIndex =
+      rightGroup.key === 'uncategorized'
+        ? Number.POSITIVE_INFINITY
+        : PROJECT_CATEGORY_PRIORITY.indexOf(
+            rightGroup.key as (typeof PROJECT_CATEGORY_PRIORITY)[number]
+          );
+
+    return leftIndex - rightIndex;
+  });
+
+  const toggleGroupCollapse = (groupKey: string) => {
+    setCollapsedGroups(current => ({
+      ...current,
+      [groupKey]: !(current[groupKey] ?? true),
+    }));
+  };
+
   return (
     <>
       <div className="p-6 border-b border-gray-200">
@@ -471,83 +529,122 @@ const PortfolioComponent = ({
         />
       </div>
       {/* Project List */}
-      <div className="divide-y divide-gray-200">
-        {projects.map(project => (
-          <motion.div
-            key={project.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-6 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
+      <div className="space-y-6 p-6">
+        {projectGroups.map(group => {
+          const sectionStyles = getProjectCategorySectionStyles(group.key);
+          const isCollapsed = collapsedGroups[group.key] ?? true;
+
+          return (
+            <section
+              key={group.key}
+              className={`overflow-hidden rounded-xl border ${sectionStyles.shell}`}
+            >
+              <button
+                type="button"
+                onClick={() => toggleGroupCollapse(group.key)}
+                className="flex w-full items-center justify-between border-b border-black/5 bg-white/75 px-5 py-4 text-left backdrop-blur-sm"
+              >
                 <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-semibold text-gray-900">{project.title}</h3>
+                  <span className={`h-3 w-3 rounded-full ${sectionStyles.accent}`} />
+                  <h4 className="text-base font-semibold text-gray-900">{group.label}</h4>
+                </div>
+                <div className="flex items-center gap-3">
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      project.visibility
-                        ? 'text-green-800 bg-green-100'
-                        : 'text-gray-800 bg-gray-100'
-                    }`}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${sectionStyles.countBadge}`}
                   >
-                    {project.visibility ? 'Visible' : 'Hidden'}
+                    {group.projects.length} {group.projects.length === 1 ? 'project' : 'projects'}
                   </span>
+                  {isCollapsed ? (
+                    <ChevronRight size={18} className="text-gray-500" />
+                  ) : (
+                    <ChevronDown size={18} className="text-gray-500" />
+                  )}
                 </div>
-                <p className="mt-1 text-gray-600">{project.short_description}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {canonicalizeProjectCategories(project.category).map(category => (
-                    <span
-                      key={category}
-                      className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700"
-                    >
-                      {getProjectCategoryLabel(category)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => toggleProjectVisibility(project.id, project.visibility)}
-                  className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-                  disabled={isLoading}
-                >
-                  {project.visibility ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-                <button
-                  onClick={() => editProject(project)}
-                  className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
-                  disabled={isLoading}
-                >
-                  <Edit size={18} />
-                </button>
-                {confirmDeleteId === project.id ? (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => deleteProject(project.id)}
-                      className="p-2 text-red-500 hover:text-red-700 transition-colors"
-                      disabled={isLoading}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDeleteId(null)}
-                      className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmDeleteId(project.id)}
-                    className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+              </button>
+
+              {!isCollapsed && <div className="divide-y divide-black/5">
+                {group.projects.map(project => (
+                  <motion.div
+                    key={project.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/75 p-6 transition-colors hover:bg-white"
                   >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        ))}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-gray-900">{project.title}</h3>
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs font-medium ${
+                              project.visibility
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {project.visibility ? 'Visible' : 'Hidden'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-gray-600">{project.short_description}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {canonicalizeProjectCategories(project.category).map(category => (
+                            <span
+                              key={category}
+                              className={`rounded-full px-2.5 py-1 text-xs font-medium ${getProjectCategoryBadgeClassName(
+                                category,
+                              )}`}
+                            >
+                              {getProjectCategoryLabel(category)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleProjectVisibility(project.id, project.visibility)}
+                          className="p-2 text-gray-500 transition-colors hover:text-gray-700"
+                          disabled={isLoading}
+                        >
+                          {project.visibility ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                        <button
+                          onClick={() => editProject(project)}
+                          className="p-2 text-gray-500 transition-colors hover:text-blue-600"
+                          disabled={isLoading}
+                        >
+                          <Edit size={18} />
+                        </button>
+                        {confirmDeleteId === project.id ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => deleteProject(project.id)}
+                              className="p-2 text-red-500 transition-colors hover:text-red-700"
+                              disabled={isLoading}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="p-2 text-gray-500 transition-colors hover:text-gray-700"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(project.id)}
+                            className="p-2 text-gray-500 transition-colors hover:text-red-500"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>}
+            </section>
+          );
+        })}
 
         {projects.length === 0 && (
           <div className="p-6 text-center text-gray-500">No projects added yet.</div>
