@@ -553,7 +553,7 @@ const Admin: React.FC = () => {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded-lg transition-colors ${
                 activeTab === tab
-                  ? 'bg-red-200 text-white'
+                  ? 'border border-red-300 bg-red-200 font-semibold text-gray-900'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -743,7 +743,7 @@ const Admin: React.FC = () => {
                                   editingSections[section.id].content
                                 )
                               }
-                              className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-white bg-red-200 rounded hover:bg-red-300"
+                              className="flex items-center gap-1 rounded border border-red-300 bg-red-200 px-3 py-1 text-sm font-semibold text-gray-900 hover:bg-red-300"
                             >
                               <Save size={16} />
                               Save
@@ -791,7 +791,7 @@ const Admin: React.FC = () => {
 
                 <button
                   type="submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-200 hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  className="inline-flex items-center rounded-md border border-red-300 bg-red-200 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400"
                 >
                   <Plus size={16} className="mr-2" />
                   Add Section
@@ -834,7 +834,7 @@ const Admin: React.FC = () => {
                 <div className="mt-4">
                   <button
                     onClick={uploadResumeFile}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-200 hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    className="inline-flex items-center rounded-md border border-red-300 bg-red-200 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400"
                   >
                     {isLoading ? 'Uploading...' : 'Upload Resume'}
                   </button>
@@ -901,7 +901,7 @@ const Admin: React.FC = () => {
                   type="button"
                   onClick={uploadCredential}
                   disabled={!hasCredentialFile || isLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-semibold text-gray-900 bg-red-200 hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:hover:bg-gray-200"
+                  className="inline-flex items-center rounded-md border border-red-300 bg-red-200 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:hover:bg-gray-200"
                 >
                   {isLoading ? (
                     <Loader className="animate-spin h-4 w-4 mr-2" />

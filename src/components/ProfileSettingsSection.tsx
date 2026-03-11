@@ -291,7 +291,7 @@ const ProfileSettingsSection: React.FC = () => {
           <button
             type="button"
             onClick={() => void loadProfileSettings()}
-            className="mt-4 inline-flex items-center rounded-full bg-red-200 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-300"
+            className="mt-4 inline-flex items-center rounded-full border border-red-300 bg-red-200 px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-red-300"
           >
             Try Again
           </button>
@@ -419,7 +419,7 @@ const ProfileSettingsSection: React.FC = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-md border border-transparent bg-red-200 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md border border-red-300 bg-red-200 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm transition-colors hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300"
               >
                 {saving ? <Loader className="h-4 w-4 animate-spin" /> : <Save size={16} />}
                 {saving ? 'Saving...' : 'Save Profile'}

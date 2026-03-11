@@ -416,7 +416,7 @@ const UnifiedProjectForm: React.FC<UnifiedProjectFormProps> = ({
         <button
           type="submit"
           disabled={isLoading}
-          className="flex items-center justify-center px-6 py-3 bg-red-200 text-white rounded-md hover:bg-red-300 transition-colors"
+          className="flex items-center justify-center rounded-md border border-red-300 bg-red-200 px-6 py-3 font-semibold text-gray-900 transition-colors hover:bg-red-300 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
         >
           {isLoading ? (
             <>

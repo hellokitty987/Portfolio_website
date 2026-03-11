@@ -162,7 +162,7 @@ const ProjectMetadataForm: React.FC<ProjectMetadataFormProps> = ({
       <div>
         <button
           type="submit"
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-200 hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          className="inline-flex justify-center rounded-md border border-red-300 bg-red-200 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400"
         >
           Save Project Metadata
         </button>
