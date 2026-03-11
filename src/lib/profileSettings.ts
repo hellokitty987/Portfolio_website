@@ -7,6 +7,7 @@ export interface ProfileSettings {
   title: string;
   avatar_url: string;
   github_url: string;
+  leetcode_url: string;
   twitter_url: string;
   linkedin_url: string;
 }
@@ -16,6 +17,7 @@ export const defaultProfileSettings: ProfileSettings = {
   title: '',
   avatar_url: '',
   github_url: '',
+  leetcode_url: '',
   twitter_url: '',
   linkedin_url: '',
 };
@@ -41,6 +43,7 @@ export const normalizeProfileSettings = (
   title: normalizeTextValue(value?.title),
   avatar_url: normalizeTextValue(value?.avatar_url),
   github_url: normalizeTextValue(value?.github_url),
+  leetcode_url: normalizeTextValue(value?.leetcode_url),
   twitter_url: normalizeTextValue(value?.twitter_url),
   linkedin_url: normalizeTextValue(value?.linkedin_url),
 });

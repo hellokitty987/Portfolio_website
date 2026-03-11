@@ -1,7 +1,7 @@
 export const PROJECT_CATEGORY_OPTIONS = [
   { value: 'data_science_ml', label: 'Data Science / ML' },
   { value: 'software_development', label: 'Software Development' },
-  { value: 'data_engineering_system_design', label: 'Data Engineering System Design' },
+  { value: 'data_engineering_system_design', label: 'Data Engineering / System Design' },
   { value: 'bim', label: 'BIM' },
 ] as const;
 
@@ -11,7 +11,7 @@ export type ProjectCategoryFilter = 'all' | ProjectCategory;
 const CANONICAL_CATEGORY_LABELS: Record<ProjectCategory, string> = {
   data_science_ml: 'Data Science / ML',
   software_development: 'Software Development',
-  data_engineering_system_design: 'Data Engineering System Design',
+  data_engineering_system_design: 'Data Engineering / System Design',
   bim: 'BIM',
 };
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileDown, Loader } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ReactMarkdown from 'react-markdown';
 import { Document, pdfjs } from 'react-pdf';
@@ -96,40 +96,12 @@ export default function Resume() {
 
         {resume?.content ? (
           <div className="mb-8 rounded-lg bg-white p-8 shadow-md">
-            {resumeFile && (
-              <div className="mb-4 flex justify-end">
-                <a
-                  href={resumeFile.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 rounded-md border border-red-400 px-3 py-1 text-sm text-red-400 transition-colors hover:bg-red-50"
-                  download={resumeFile.file_name}
-                >
-                  <FileDown size={16} />
-                  <span>Download PDF</span>
-                </a>
-              </div>
-            )}
-
             <div className="prose max-w-none text-gray-900">
               <ReactMarkdown>{resume.content}</ReactMarkdown>
             </div>
           </div>
         ) : resumeFile ? (
           <div className="mb-8 px-2 sm:px-0">
-            <div className="mb-4 flex justify-end">
-              <a
-                href={resumeFile.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 rounded-md border border-red-300 px-3 py-1 text-sm text-red-200 transition-colors hover:bg-white/10"
-                download={resumeFile.file_name}
-              >
-                <FileDown size={16} />
-                <span>Download PDF</span>
-              </a>
-            </div>
-
             <div className="flex flex-col items-center">
               <Document
                 file={resumeFile.file_url}

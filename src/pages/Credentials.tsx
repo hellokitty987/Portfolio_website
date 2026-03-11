@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileDown, Loader } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Document, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -101,28 +101,6 @@ export default function Credentials() {
               <section key={credential.id}>
                 {credential.content_type === 'application/pdf' ? (
                   <div className="px-2 sm:px-0">
-                    <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <h2 className="text-xl font-semibold text-white">
-                          {getCredentialDisplayName(credential)}
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-400">
-                          {[getCredentialTypeLabel(credential), formatCredentialSize(credential.size)]
-                            .filter(Boolean)
-                            .join(' • ')}
-                        </p>
-                      </div>
-                      <a
-                        href={credential.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-white/10"
-                      >
-                        <FileDown size={16} />
-                        Open File
-                      </a>
-                    </div>
-
                     <div className="flex flex-col items-center">
                       <Document
                         file={credential.file_url}
@@ -168,7 +146,6 @@ export default function Credentials() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                       >
-                        <FileDown size={16} />
                         Open File
                       </a>
                     </div>

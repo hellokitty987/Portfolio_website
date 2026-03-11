@@ -105,7 +105,7 @@ export default function Portfolio() {
         {/* Category Filter */}
         <div className="mb-12 flex justify-center">
           <div className="max-w-full overflow-x-auto">
-            <div className="inline-flex overflow-hidden rounded-lg border border-gray-500/40 bg-gray-600/20">
+            <div className="inline-flex overflow-hidden rounded-none border border-gray-500/40 bg-gray-600/20">
               {PORTFOLIO_CATEGORY_FILTERS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -115,7 +115,7 @@ export default function Portfolio() {
         border-r border-gray-500/30 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 last:border-r-0
         ${
           selectedCategory === value
-            ? 'bg-gray-600 text-white'
+            ? 'bg-[#FECACA] text-black'
             : 'bg-transparent text-gray-200 hover:bg-gray-500/25 hover:text-white'
         }
       `}
@@ -143,13 +143,13 @@ export default function Portfolio() {
               />
 
               {/* Hover Overlay */}
-              <div className="pointer-events-none absolute inset-0 z-10 bg-gray-700 opacity-0 transition-opacity duration-200 group-hover:opacity-75" />
-              <div className="pointer-events-none absolute inset-0 z-20 flex items-end p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+              <div className="pointer-events-none absolute inset-0 z-10 bg-[#FECACA] opacity-0 transition-opacity duration-200 group-hover:opacity-65" />
+              <div className="pointer-events-none absolute inset-0 z-20 flex items-center p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                 <div className="max-w-full">
-                  <h3 className="mb-1 line-clamp-2 text-base font-semibold leading-snug text-white">
+                  <h3 className="mb-1 line-clamp-2 text-[12px] font-semibold leading-snug text-black">
                     {project.title}
                   </h3>
-                  <p className="line-clamp-2 text-xs leading-relaxed text-gray-100">
+                  <p className="line-clamp-2 text-[10px] leading-relaxed text-black">
                     {project.short_description}
                   </p>
                 </div>

@@ -120,9 +120,9 @@ export default function About() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-3xl mx-auto p-8"
+          className="w-full max-w-3xl mx-auto p-8 -translate-y-2"
         >
-          <PublicPageHeading title="About Me" className="mb-8" />
+          <PublicPageHeading title="About Me" className="-translate-y-12 mb-8" />
 
           <div className="prose prose-lg max-w-none prose-invert">
             {sortedSections.map(section => {

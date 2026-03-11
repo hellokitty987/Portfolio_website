@@ -13,11 +13,17 @@ import {
 import { useProfileSettings } from '../hooks/useProfileSettings';
 import { FileUpload } from './FileUpload';
 
-type ProfileField = 'name' | 'title' | 'github_url' | 'twitter_url' | 'linkedin_url';
+type ProfileField =
+  | 'name'
+  | 'title'
+  | 'github_url'
+  | 'leetcode_url'
+  | 'twitter_url'
+  | 'linkedin_url';
 type ProfileFieldErrors = Partial<Record<ProfileField, string>>;
 
 const profileLinkFields: Array<{
-  field: Extract<ProfileField, 'github_url' | 'twitter_url' | 'linkedin_url'>;
+  field: Extract<ProfileField, 'github_url' | 'leetcode_url' | 'twitter_url' | 'linkedin_url'>;
   label: string;
   placeholder: string;
 }> = [
@@ -25,6 +31,11 @@ const profileLinkFields: Array<{
     field: 'github_url',
     label: 'GitHub URL',
     placeholder: 'https://github.com/username',
+  },
+  {
+    field: 'leetcode_url',
+    label: 'LeetCode URL',
+    placeholder: 'https://leetcode.com/u/username',
   },
   {
     field: 'twitter_url',
@@ -216,6 +227,7 @@ const ProfileSettingsSection: React.FC = () => {
         title: profileForm.title.trim() || null,
         avatar_url: nextAvatarUrl || null,
         github_url: profileForm.github_url.trim() || null,
+        leetcode_url: profileForm.leetcode_url.trim() || null,
         twitter_url: profileForm.twitter_url.trim() || null,
         linkedin_url: profileForm.linkedin_url.trim() || null,
         user_id: currentUserId,
