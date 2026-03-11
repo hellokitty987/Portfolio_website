@@ -9,7 +9,7 @@ import {
   isCanonicalProjectCategory,
 } from '../lib/projectCategories';
 
-interface ProjectFormData {
+export interface ProjectFormData {
   title: string;
   shortDescription: string;
   category: string[];

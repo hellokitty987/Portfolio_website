@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -7,18 +7,26 @@ import Footer from '../components/Footer';
 import PublicPageHeading from '../components/PublicPageHeading';
 import {
   PORTFOLIO_CATEGORY_FILTERS,
-  PROJECT_CATEGORY_PRIORITY,
-  canonicalizeProjectCategories,
   type ProjectCategoryFilter,
 } from '../lib/projectCategories';
+import {
+  compareProjectsByCategoryOrder,
+  getProjectCategoryPriorityIndex,
+  getProjectPrimaryCategory,
+  normalizeProjectOrderingFields,
+  sortProjectsForCategory,
+  type ProjectCategorySortOrder,
+} from '../lib/projectSortOrder';
 
 interface Project {
   id: string;
   title: string;
   short_description: string;
   category: string[];
+  category_sort_order: ProjectCategorySortOrder;
   thumbnail_url: string;
   slug: string;
+  created_at: string;
 }
 
 export default function Portfolio() {
@@ -28,7 +36,7 @@ export default function Portfolio() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProjects();
+    void fetchProjects();
   }, []);
 
   const fetchProjects = async () => {
@@ -42,14 +50,11 @@ export default function Portfolio() {
         .eq('visibility', true)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setProjects(
-        (data || []).map(project => ({
-          ...project,
-          category: canonicalizeProjectCategories(project.category),
-        })),
-      );
+      setProjects((data || []).map(project => normalizeProjectOrderingFields(project as Project)));
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Failed to load projects');
@@ -58,21 +63,29 @@ export default function Portfolio() {
     }
   };
 
-  const filteredProjects = projects
-    .filter(project => selectedCategory === 'all' || project.category.includes(selectedCategory))
-    .sort((a, b) => {
-      if (selectedCategory !== 'all') return 0;
+  const filteredProjects = useMemo(() => {
+    const matchingProjects = projects.filter(
+      project => selectedCategory === 'all' || project.category.includes(selectedCategory),
+    );
 
-      const getPriority = (project: Project) => {
-        const matchingCategory = PROJECT_CATEGORY_PRIORITY.find(category =>
-          project.category.includes(category),
-        );
+    if (selectedCategory !== 'all') {
+      return sortProjectsForCategory(matchingProjects, selectedCategory);
+    }
 
-        return matchingCategory ? PROJECT_CATEGORY_PRIORITY.indexOf(matchingCategory) : 999;
-      };
+    return [...matchingProjects].sort((leftProject, rightProject) => {
+      const leftPrimaryCategory = getProjectPrimaryCategory(leftProject.category);
+      const rightPrimaryCategory = getProjectPrimaryCategory(rightProject.category);
+      const priorityDifference =
+        getProjectCategoryPriorityIndex(leftPrimaryCategory) -
+        getProjectCategoryPriorityIndex(rightPrimaryCategory);
 
-      return getPriority(a) - getPriority(b);
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      return compareProjectsByCategoryOrder(leftPrimaryCategory)(leftProject, rightProject);
     });
+  }, [projects, selectedCategory]);
 
   if (loading) {
     return (
@@ -102,7 +115,6 @@ export default function Portfolio() {
       >
         <PublicPageHeading title="Portfolio" className="mb-8 text-gray-100" />
 
-        {/* Category Filter */}
         <div className="mb-12 flex justify-center">
           <div className="max-w-full overflow-x-auto">
             <div className="inline-flex overflow-hidden rounded-none border border-gray-500/40 bg-gray-600/20">
@@ -127,7 +139,6 @@ export default function Portfolio() {
           </div>
         </div>
 
-        {/* Project Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0">
           {filteredProjects.map(project => (
             <Link
@@ -135,14 +146,12 @@ export default function Portfolio() {
               to={`/project/${project.slug}`}
               className="group relative aspect-[4/3] overflow-hidden bg-gray-600/15"
             >
-              {/* Thumbnail */}
               <img
                 src={project.thumbnail_url}
                 alt={project.title}
                 className="h-full w-full object-contain"
               />
 
-              {/* Hover Overlay */}
               <div className="pointer-events-none absolute inset-0 z-10 bg-[#FECACA] opacity-0 transition-opacity duration-200 group-hover:opacity-65" />
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                 <div className="max-w-full">

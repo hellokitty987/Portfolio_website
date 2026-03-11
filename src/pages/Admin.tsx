@@ -24,6 +24,10 @@ import {
   getCredentialDisplayName,
   getCredentialTypeLabel,
 } from '../lib/credentialFiles';
+import {
+  type ProjectCategorySortOrder,
+  normalizeProjectOrderingFields,
+} from '../lib/projectSortOrder';
 
 interface Message {
   id: string;
@@ -39,15 +43,19 @@ interface Project {
   title: string;
   description: string;
   category: string[];
+  category_sort_order: ProjectCategorySortOrder;
   visibility: boolean;
+  created_at: string;
   thumbnail_url: string;
   full_title: string;
   short_description: string;
   source_code_gist_url: string;
+  source_code_plaintext?: string | null;
   visualization_type: 'tableau' | 'video' | 'image_gallery';
   tableau_embed_code: string;
-  video_url: string;
-  image_gallery_urls: string[];
+  video_url: string | null;
+  image_gallery_urls: string[] | null;
+  pdfs?: string[] | null;
 }
 
 interface AboutSection {
@@ -147,10 +155,7 @@ const Admin: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      else {
-        console.log('data', data);
-        setProjects(data || []);
-      }
+      setProjects((data || []).map(project => normalizeProjectOrderingFields(project as Project)));
     } catch (error) {
       console.log('error', error);
     }

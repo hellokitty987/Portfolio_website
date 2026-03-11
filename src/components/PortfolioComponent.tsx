@@ -1,34 +1,67 @@
 import React, { useState } from 'react';
-import UnifiedProjectForm from './UnifiedProjectForm';
-import { ChevronDown, ChevronRight, Eye, EyeOff, Trash2, Edit, X } from 'lucide-react';
+import UnifiedProjectForm, { type ProjectFormData } from './UnifiedProjectForm';
+import {
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Loader,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import slugify from 'slugify';
-import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import {
-  PROJECT_CATEGORY_PRIORITY,
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
   canonicalizeProjectCategories,
   getProjectCategoryBadgeClassName,
   getProjectCategoryLabel,
   getProjectCategorySectionStyles,
 } from '../lib/projectCategories';
+import {
+  getProjectCategoryPriorityIndex,
+  getProjectPrimaryCategory,
+  normalizeProjectOrderingFields,
+  sortProjectsForCategory,
+  type ProjectCategorySortOrder,
+} from '../lib/projectSortOrder';
 
 interface Project {
   id: string;
   title: string;
   description: string;
   category: string[];
+  category_sort_order: ProjectCategorySortOrder;
   visibility: boolean;
+  created_at: string;
   thumbnail_url: string;
   full_title: string;
   short_description: string;
-  source_code_gist_url: string;
+  source_code_gist_url: string | null;
+  source_code_plaintext?: string | null;
   visualization_type: 'tableau' | 'video' | 'image_gallery';
-  tableau_embed_code: string;
-  video_url: string;
-  image_gallery_urls: string[];
-  sourceCodeText?: string;
-  pdfs?: string[];
+  tableau_embed_code: string | null;
+  video_url: string | null;
+  image_gallery_urls: string[] | null;
+  pdfs?: string[] | null;
+  slug: string;
 }
 
 type ProjectGroup = {
@@ -37,12 +70,184 @@ type ProjectGroup = {
   projects: Project[];
 };
 
+type SortableProjectCardProps = {
+  project: Project;
+  confirmDeleteId: string | null;
+  isBusy: boolean;
+  isSavingOrder: boolean;
+  isSortable: boolean;
+  onDelete: (projectId: string) => void;
+  onEdit: (project: Project) => void;
+  onRequestDelete: (projectId: string | null) => void;
+  onToggleVisibility: (projectId: string, currentVisibility: boolean) => void;
+};
+
+const applyCategoryOrderToProjects = (
+  projects: Project[],
+  categoryKey: string,
+  orderedProjectIds: string[],
+) => {
+  const orderedPositions = new Map(
+    orderedProjectIds.map((projectId, index) => [projectId, index] as const),
+  );
+
+  return projects.map(project => {
+    const nextPosition = orderedPositions.get(project.id);
+
+    if (nextPosition === undefined) {
+      return project;
+    }
+
+    return {
+      ...project,
+      category_sort_order: {
+        ...project.category_sort_order,
+        [categoryKey]: nextPosition,
+      },
+    };
+  });
+};
+
+const SortableProjectCard = ({
+  project,
+  confirmDeleteId,
+  isBusy,
+  isSavingOrder,
+  isSortable,
+  onDelete,
+  onEdit,
+  onRequestDelete,
+  onToggleVisibility,
+}: SortableProjectCardProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: project.id,
+    disabled: isBusy || isSavingOrder || !isSortable,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={`bg-white/75 p-6 transition-colors hover:bg-white ${
+        isDragging ? 'relative z-10 shadow-xl ring-2 ring-[#FECACA]' : ''
+      }`}
+    >
+      <div className="flex items-start gap-4">
+        <button
+          type="button"
+          className={`mt-1 rounded-lg border border-black/10 bg-white p-2 text-gray-400 transition-colors ${
+            isSortable && !isBusy && !isSavingOrder
+              ? 'cursor-grab hover:text-gray-700 active:cursor-grabbing'
+              : 'cursor-not-allowed opacity-60'
+          }`}
+          disabled={isBusy || isSavingOrder || !isSortable}
+          aria-label={`Reorder ${project.title}`}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical size={16} />
+        </button>
+
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-gray-900">{project.title}</h3>
+                <span
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${
+                    project.visibility
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {project.visibility ? 'Visible' : 'Hidden'}
+                </span>
+              </div>
+              <p className="mt-1 text-gray-600">{project.short_description}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {canonicalizeProjectCategories(project.category).map(category => (
+                  <span
+                    key={category}
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${getProjectCategoryBadgeClassName(
+                      category,
+                    )}`}
+                  >
+                    {getProjectCategoryLabel(category)}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onToggleVisibility(project.id, project.visibility)}
+                className="p-2 text-gray-500 transition-colors hover:text-gray-700"
+                disabled={isBusy}
+              >
+                {project.visibility ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              <button
+                type="button"
+                onClick={() => onEdit(project)}
+                className="p-2 text-gray-500 transition-colors hover:text-blue-600"
+                disabled={isBusy}
+              >
+                <Edit size={18} />
+              </button>
+              {confirmDeleteId === project.id ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onDelete(project.id)}
+                    className="p-2 text-red-500 transition-colors hover:text-red-700"
+                    disabled={isBusy}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRequestDelete(null)}
+                    className="p-2 text-gray-500 transition-colors hover:text-gray-700"
+                    disabled={isBusy}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onRequestDelete(project.id)}
+                  className="p-2 text-gray-500 transition-colors hover:text-red-500"
+                  disabled={isBusy}
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PortfolioComponent = ({
   fetchProjects,
   projects,
   setProjects,
 }: {
-  fetchProjects: () => void;
+  fetchProjects: () => Promise<void>;
   projects: Project[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
 }) => {
@@ -52,6 +257,15 @@ const PortfolioComponent = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [savingGroupOrder, setSavingGroupOrder] = useState<Record<string, boolean>>({});
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
 
   const resetForm = () => {
     setEditingProject(null);
@@ -59,15 +273,14 @@ const PortfolioComponent = ({
     setFormKey(prev => prev + 1);
   };
 
-  const handleCreateProject = async (data: any) => {
+  const handleCreateProject = async (data: ProjectFormData) => {
     setIsLoading(true);
     try {
       let thumbnailUrl = '';
       let videoUrl = '';
-      let imageUrls: string[] = [];
-      let pdfUrls: string[] = [];
+      const imageUrls: string[] = [];
+      const pdfUrls: string[] = [];
 
-      // Upload thumbnail
       if (data.thumbnailFile) {
         const ext = data.thumbnailFile.name.split('.').pop();
         const name = `${crypto.randomUUID()}.${ext}`;
@@ -76,7 +289,9 @@ const PortfolioComponent = ({
         const { error } = await supabase.storage
           .from('project-files')
           .upload(path, data.thumbnailFile);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         const {
           data: { publicUrl },
@@ -88,10 +303,12 @@ const PortfolioComponent = ({
         for (const file of data.pdfFiles) {
           const ext = file.name.split('.').pop();
           const name = `${crypto.randomUUID()}.${ext}`;
-          const path = `pdf-files/${name}`; // Upload to pdf-files folder
+          const path = `pdf-files/${name}`;
 
           const { error } = await supabase.storage.from('project-files').upload(path, file);
-          if (error) throw error;
+          if (error) {
+            throw error;
+          }
 
           const {
             data: { publicUrl },
@@ -100,14 +317,15 @@ const PortfolioComponent = ({
         }
       }
 
-      // Upload video
       if (data.videoFile) {
         const ext = data.videoFile.name.split('.').pop();
         const name = `${crypto.randomUUID()}.${ext}`;
         const path = `${name}`;
 
         const { error } = await supabase.storage.from('project-files').upload(path, data.videoFile);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         const {
           data: { publicUrl },
@@ -115,7 +333,6 @@ const PortfolioComponent = ({
         videoUrl = publicUrl;
       }
 
-      // Upload image gallery
       if (data.imageFiles?.length) {
         for (const file of data.imageFiles) {
           const ext = file.name.split('.').pop();
@@ -123,7 +340,9 @@ const PortfolioComponent = ({
           const path = `project-files/${name}`;
 
           const { error } = await supabase.storage.from('project-files').upload(path, file);
-          if (error) throw error;
+          if (error) {
+            throw error;
+          }
 
           const {
             data: { publicUrl },
@@ -132,7 +351,6 @@ const PortfolioComponent = ({
         }
       }
 
-      // Insert into projects table
       const normalizedCategories = canonicalizeProjectCategories(data.category);
 
       const { data: project, error } = await supabase
@@ -157,18 +375,14 @@ const PortfolioComponent = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setProjects(prev => [
-        {
-          ...project,
-          category: canonicalizeProjectCategories(project.category),
-        },
-        ...prev,
-      ]);
+      setProjects(prev => [normalizeProjectOrderingFields(project as Project), ...prev]);
       toast.success('Project created successfully!');
       resetForm();
-      fetchProjects();
+      await fetchProjects();
     } catch (err) {
       toast.error('Failed to create project');
       console.error(err);
@@ -192,8 +406,7 @@ const PortfolioComponent = ({
     try {
       setIsLoading(true);
 
-      // First delete associated files
-      const project = projects.find(p => p.id === projectId);
+      const project = projects.find(currentProject => currentProject.id === projectId);
       if (project) {
         const filesToDelete: string[] = [];
 
@@ -214,17 +427,19 @@ const PortfolioComponent = ({
         if (filesToDelete.length) {
           await supabase.storage.from('project-files').remove(filesToDelete);
         }
+
         if (project.pdfs?.length) {
           const pdfFilesToDelete = project.pdfs.map(url => url.split('/').pop()!);
           await supabase.storage.from('project-files').remove(pdfFilesToDelete);
         }
       }
 
-      // Then delete the project record
       const { error } = await supabase.from('projects').delete().eq('id', projectId);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setProjects(projects.filter(project => project.id !== projectId));
+      setProjects(prev => prev.filter(project => project.id !== projectId));
       toast.success('Project deleted successfully!');
     } catch (err) {
       toast.error('Failed to delete project');
@@ -235,8 +450,10 @@ const PortfolioComponent = ({
     }
   };
 
-  const handleUpdateProject = async (data: any) => {
-    if (!editingProject) return;
+  const handleUpdateProject = async (data: ProjectFormData) => {
+    if (!editingProject) {
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -246,9 +463,7 @@ const PortfolioComponent = ({
       let pdfUrls = editingProject.pdfs || [];
       const normalizedCategories = canonicalizeProjectCategories(data.category);
 
-      // Upload thumbnail if changed
       if (data.thumbnailFile) {
-        // First delete old thumbnail if it exists
         if (editingProject.thumbnail_url) {
           const oldPath = editingProject.thumbnail_url.split('/').pop();
           if (oldPath) {
@@ -256,7 +471,6 @@ const PortfolioComponent = ({
           }
         }
 
-        // Upload new thumbnail
         const ext = data.thumbnailFile.name.split('.').pop();
         const name = `${crypto.randomUUID()}.${ext}`;
         const path = `${name}`;
@@ -264,7 +478,9 @@ const PortfolioComponent = ({
         const { error } = await supabase.storage
           .from('project-files')
           .upload(path, data.thumbnailFile);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         const {
           data: { publicUrl },
@@ -272,10 +488,7 @@ const PortfolioComponent = ({
         thumbnailUrl = publicUrl;
       }
 
-      // Upload video if changed
-      // Handle video changes
       if (data.videoFile) {
-        // Delete old video if it exists
         if (editingProject.video_url) {
           const oldPath = editingProject.video_url.split('/').pop();
           if (oldPath) {
@@ -283,29 +496,20 @@ const PortfolioComponent = ({
           }
         }
 
-        // Upload new video
         const ext = data.videoFile.name.split('.').pop();
         const name = `${crypto.randomUUID()}.${ext}`;
         const path = `${name}`;
 
         const { error } = await supabase.storage.from('project-files').upload(path, data.videoFile);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         const {
           data: { publicUrl },
         } = supabase.storage.from('project-files').getPublicUrl(path);
         videoUrl = publicUrl;
-      } else if (data.removeVideo) {
-        // Delete video if user requested removal
-        if (editingProject.video_url) {
-          const oldPath = editingProject.video_url.split('/').pop();
-          if (oldPath) {
-            await supabase.storage.from('project-files').remove([oldPath]);
-          }
-          videoUrl = ''; // Set to empty string to remove the video
-        }
-      } else if (data.removeVideo === true && editingProject.video_url) {
-        // Delete video if user removed it and didn't upload a new one
+      } else if (data.removeVideo && editingProject.video_url) {
         const oldPath = editingProject.video_url.split('/').pop();
         if (oldPath) {
           await supabase.storage.from('project-files').remove([oldPath]);
@@ -313,7 +517,6 @@ const PortfolioComponent = ({
         videoUrl = '';
       }
 
-      // Handle PDF uploads - append new files
       if (data.pdfFiles?.length) {
         for (const file of data.pdfFiles) {
           const ext = file.name.split('.').pop();
@@ -321,7 +524,9 @@ const PortfolioComponent = ({
           const path = `pdf-files/${name}`;
 
           const { error } = await supabase.storage.from('project-files').upload(path, file);
-          if (error) throw error;
+          if (error) {
+            throw error;
+          }
 
           const {
             data: { publicUrl },
@@ -330,14 +535,12 @@ const PortfolioComponent = ({
         }
       }
 
-      // Handle deleted PDFs
       if (data.deletedPdfUrls?.length) {
         const pathsToDelete = data.deletedPdfUrls.map(url => url.split('/').pop()!);
         await supabase.storage.from('project-files').remove(pathsToDelete);
-        pdfUrls = pdfUrls.filter(url => !data.deletedPdfUrls.includes(url));
+        pdfUrls = pdfUrls.filter(url => !data.deletedPdfUrls?.includes(url));
       }
 
-      // Handle image uploads - append new files
       if (data.imageFiles?.length) {
         for (const file of data.imageFiles) {
           const ext = file.name.split('.').pop();
@@ -345,7 +548,9 @@ const PortfolioComponent = ({
           const path = `project-files/${name}`;
 
           const { error } = await supabase.storage.from('project-files').upload(path, file);
-          if (error) throw error;
+          if (error) {
+            throw error;
+          }
 
           const {
             data: { publicUrl },
@@ -354,14 +559,12 @@ const PortfolioComponent = ({
         }
       }
 
-      // Handle deleted images
       if (data.deletedImageUrls?.length) {
         const pathsToDelete = data.deletedImageUrls.map(url => url.split('/').pop()!);
         await supabase.storage.from('project-files').remove(pathsToDelete);
-        imageUrls = imageUrls.filter(url => !data.deletedImageUrls.includes(url));
+        imageUrls = imageUrls.filter(url => !data.deletedImageUrls?.includes(url));
       }
 
-      // Update project in database
       const { data: updatedProject, error } = await supabase
         .from('projects')
         .update({
@@ -384,25 +587,21 @@ const PortfolioComponent = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setProjects(
-        projects.map(project =>
-          project.id === editingProject.id
-            ? {
-                ...updatedProject,
-                category: canonicalizeProjectCategories(updatedProject.category),
-              }
-            : project
-        )
+      const normalizedProject = normalizeProjectOrderingFields(updatedProject as Project);
+      setProjects(prevProjects =>
+        prevProjects.map(project => (project.id === editingProject.id ? normalizedProject : project)),
       );
 
       toast.success('Project updated successfully!');
       resetForm();
-      fetchProjects();
-    } catch (err: any) {
-      console.error('❌ Project update failed:', err);
-      toast.error(err?.message || 'Failed to update project');
+      await fetchProjects();
+    } catch (err: unknown) {
+      console.error('Project update failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update project');
     } finally {
       setIsLoading(false);
     }
@@ -416,12 +615,14 @@ const PortfolioComponent = ({
         .update({ visibility: !currentVisibility })
         .eq('id', projectId);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setProjects(
-        projects.map(project =>
-          project.id === projectId ? { ...project, visibility: !currentVisibility } : project
-        )
+      setProjects(prevProjects =>
+        prevProjects.map(project =>
+          project.id === projectId ? { ...project, visibility: !currentVisibility } : project,
+        ),
       );
       toast.success(`Project ${!currentVisibility ? 'published' : 'hidden'}`);
     } catch (err) {
@@ -432,13 +633,65 @@ const PortfolioComponent = ({
     }
   };
 
-  const projectGroups = projects.reduce<ProjectGroup[]>((groups, project) => {
-    const normalizedCategories = canonicalizeProjectCategories(project.category);
-    const primaryCategory =
-      PROJECT_CATEGORY_PRIORITY.find(category => normalizedCategories.includes(category)) ??
-      normalizedCategories[0] ??
-      'uncategorized';
+  const handleDragEnd = async (
+    groupKey: string,
+    groupProjects: Project[],
+    event: DragEndEvent,
+  ) => {
+    if (groupKey === 'uncategorized' || savingGroupOrder[groupKey]) {
+      return;
+    }
 
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const currentProjects = sortProjectsForCategory(groupProjects, groupKey);
+    const oldIndex = currentProjects.findIndex(project => project.id === active.id);
+    const newIndex = currentProjects.findIndex(project => project.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+
+    const reorderedProjects = arrayMove(currentProjects, oldIndex, newIndex);
+    const orderedProjectIds = reorderedProjects.map(project => project.id);
+    const previousProjects = projects;
+
+    setProjects(prevProjects => applyCategoryOrderToProjects(prevProjects, groupKey, orderedProjectIds));
+    setSavingGroupOrder(current => ({
+      ...current,
+      [groupKey]: true,
+    }));
+
+    try {
+      const { error } = await supabase.rpc('reorder_projects_in_category', {
+        category_key: groupKey,
+        ordered_project_ids: orderedProjectIds,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(`${getProjectCategoryLabel(groupKey)} order updated`);
+      await fetchProjects();
+    } catch (err) {
+      setProjects(previousProjects);
+      console.error('Project reorder failed:', err);
+      toast.error('Failed to save project order');
+    } finally {
+      setSavingGroupOrder(current => ({
+        ...current,
+        [groupKey]: false,
+      }));
+    }
+  };
+
+  const projectGroups = projects.reduce<ProjectGroup[]>((groups, project) => {
+    const primaryCategory = getProjectPrimaryCategory(project.category);
     const existingGroup = groups.find(group => group.key === primaryCategory);
 
     if (existingGroup) {
@@ -448,30 +701,21 @@ const PortfolioComponent = ({
 
     groups.push({
       key: primaryCategory,
-      label:
-        primaryCategory === 'uncategorized'
-          ? 'Uncategorized'
-          : getProjectCategoryLabel(primaryCategory),
+      label: primaryCategory === 'uncategorized' ? 'Uncategorized' : getProjectCategoryLabel(primaryCategory),
       projects: [project],
     });
 
     return groups;
   }, []);
 
-  projectGroups.sort((leftGroup, rightGroup) => {
-    const leftIndex =
-      leftGroup.key === 'uncategorized'
-        ? Number.POSITIVE_INFINITY
-        : PROJECT_CATEGORY_PRIORITY.indexOf(leftGroup.key as (typeof PROJECT_CATEGORY_PRIORITY)[number]);
-    const rightIndex =
-      rightGroup.key === 'uncategorized'
-        ? Number.POSITIVE_INFINITY
-        : PROJECT_CATEGORY_PRIORITY.indexOf(
-            rightGroup.key as (typeof PROJECT_CATEGORY_PRIORITY)[number]
-          );
-
-    return leftIndex - rightIndex;
+  projectGroups.forEach(group => {
+    group.projects = sortProjectsForCategory(group.projects, group.key);
   });
+
+  projectGroups.sort(
+    (leftGroup, rightGroup) =>
+      getProjectCategoryPriorityIndex(leftGroup.key) - getProjectCategoryPriorityIndex(rightGroup.key),
+  );
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups(current => ({
@@ -487,7 +731,6 @@ const PortfolioComponent = ({
         <p className="text-gray-600 mt-1">Manage your portfolio projects</p>
       </div>
 
-      {/* Project Form */}
       <div className="p-6 border-t border-gray-200">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -495,6 +738,7 @@ const PortfolioComponent = ({
           </h3>
           {isEditing && (
             <button
+              type="button"
               onClick={cancelEdit}
               className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-800"
             >
@@ -516,11 +760,11 @@ const PortfolioComponent = ({
                   fullTitle: editingProject.full_title,
                   description: editingProject.description,
                   visualizationType: editingProject.visualization_type,
-                  tableauCode: editingProject.tableau_embed_code,
-                  videoUrl: editingProject.video_url,
+                  tableauCode: editingProject.tableau_embed_code || '',
+                  videoUrl: editingProject.video_url || '',
                   imageUrls: editingProject.image_gallery_urls || [],
-                  sourceCodeGist: editingProject.source_code_gist_url,
-                  sourceCodeText: editingProject.source_code_plaintext,
+                  sourceCodeGist: editingProject.source_code_gist_url || '',
+                  sourceCodeText: editingProject.source_code_plaintext || '',
                   thumbnailUrl: editingProject.thumbnail_url,
                   pdfUrls: editingProject.pdfs || [],
                 }
@@ -528,11 +772,13 @@ const PortfolioComponent = ({
           }
         />
       </div>
-      {/* Project List */}
+
       <div className="space-y-6 p-6">
         {projectGroups.map(group => {
           const sectionStyles = getProjectCategorySectionStyles(group.key);
           const isCollapsed = collapsedGroups[group.key] ?? true;
+          const isSavingOrder = Boolean(savingGroupOrder[group.key]);
+          const isSortable = group.key !== 'uncategorized';
 
           return (
             <section
@@ -550,7 +796,12 @@ const PortfolioComponent = ({
                   <span className={`h-3 w-3 rounded-full ${sectionStyles.accent}`} />
                   <h4 className="text-base font-semibold text-gray-900">{group.label}</h4>
                 </div>
+
                 <div className="flex items-center gap-3">
+                  {isSavingOrder && <Loader size={16} className="animate-spin text-gray-500" />}
+                  <span className="text-xs text-gray-500">
+                    {isSortable ? 'Drag to reorder' : 'Order follows fallback'}
+                  </span>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${sectionStyles.countBadge}`}
                   >
@@ -564,86 +815,35 @@ const PortfolioComponent = ({
                 </div>
               </button>
 
-              {!isCollapsed && <div className="divide-y divide-black/5 bg-white/80">
-                {group.projects.map(project => (
-                  <motion.div
-                    key={project.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white/75 p-6 transition-colors hover:bg-white"
+              {!isCollapsed && (
+                <div className="divide-y divide-black/5 bg-white/80">
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={event => void handleDragEnd(group.key, group.projects, event)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{project.title}</h3>
-                          <span
-                            className={`rounded-full px-2 py-1 text-xs font-medium ${
-                              project.visibility
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {project.visibility ? 'Visible' : 'Hidden'}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-gray-600">{project.short_description}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {canonicalizeProjectCategories(project.category).map(category => (
-                            <span
-                              key={category}
-                              className={`rounded-full px-2.5 py-1 text-xs font-medium ${getProjectCategoryBadgeClassName(
-                                category,
-                              )}`}
-                            >
-                              {getProjectCategoryLabel(category)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => toggleProjectVisibility(project.id, project.visibility)}
-                          className="p-2 text-gray-500 transition-colors hover:text-gray-700"
-                          disabled={isLoading}
-                        >
-                          {project.visibility ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                        <button
-                          onClick={() => editProject(project)}
-                          className="p-2 text-gray-500 transition-colors hover:text-blue-600"
-                          disabled={isLoading}
-                        >
-                          <Edit size={18} />
-                        </button>
-                        {confirmDeleteId === project.id ? (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => deleteProject(project.id)}
-                              className="p-2 text-red-500 transition-colors hover:text-red-700"
-                              disabled={isLoading}
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="p-2 text-gray-500 transition-colors hover:text-gray-700"
-                            >
-                              <X size={18} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmDeleteId(project.id)}
-                            className="p-2 text-gray-500 transition-colors hover:text-red-500"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>}
+                    <SortableContext
+                      items={group.projects.map(project => project.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {group.projects.map(project => (
+                        <SortableProjectCard
+                          key={project.id}
+                          project={project}
+                          confirmDeleteId={confirmDeleteId}
+                          isBusy={isLoading}
+                          isSavingOrder={isSavingOrder}
+                          isSortable={isSortable}
+                          onDelete={deleteProject}
+                          onEdit={editProject}
+                          onRequestDelete={setConfirmDeleteId}
+                          onToggleVisibility={toggleProjectVisibility}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              )}
             </section>
           );
         })}
