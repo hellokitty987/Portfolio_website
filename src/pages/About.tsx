@@ -115,39 +115,41 @@ export default function About() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <GeometricBackground />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-3xl mx-auto relative z-10 p-8"
-      >
-        <PublicPageHeading title="About Me" className="mb-8" />
+      <div className="relative z-10 flex flex-1 items-center pb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-3xl mx-auto p-8"
+        >
+          <PublicPageHeading title="About Me" className="mb-8" />
 
-        <div className="prose prose-lg max-w-none prose-invert">
-          {sortedSections.map(section => {
-            const sanitizedContent = DOMPurify.sanitize(section.content, {
-              ADD_ATTR: ['target', 'rel'],
-              ADD_TAGS: ['a'],
-            });
+          <div className="prose prose-lg max-w-none prose-invert">
+            {sortedSections.map(section => {
+              const sanitizedContent = DOMPurify.sanitize(section.content, {
+                ADD_ATTR: ['target', 'rel'],
+                ADD_TAGS: ['a'],
+              });
 
-            // Add mb-5 to empty <p> tags (including whitespace-only ones)
-            const styledContent = sanitizedContent.replace(
-              /<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/g,
-              '<p class="mb-5"></p>'
-            );
+              // Add mb-5 to empty <p> tags (including whitespace-only ones)
+              const styledContent = sanitizedContent.replace(
+                /<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/g,
+                '<p class="mb-5"></p>'
+              );
 
-            return (
-              <div key={section.id} className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4 text-red-200">{section.title}</h2>
-                <div
-                  className="text-gray-300 whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: styledContent }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </motion.div>
+              return (
+                <div key={section.id} className="mb-8">
+                  <h2 className="text-2xl font-semibold mb-4 text-red-200">{section.title}</h2>
+                  <div
+                    className="text-gray-300 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                    dangerouslySetInnerHTML={{ __html: styledContent }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      </div>
       <Footer />
     </div>
   );
