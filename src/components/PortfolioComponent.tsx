@@ -537,12 +537,14 @@ const PortfolioComponent = ({
           return (
             <section
               key={group.key}
-              className={`overflow-hidden rounded-xl border ${sectionStyles.shell}`}
+              className={`relative isolate overflow-hidden rounded-2xl border shadow-sm ${sectionStyles.shell}`}
             >
               <button
                 type="button"
                 onClick={() => toggleGroupCollapse(group.key)}
-                className="flex w-full items-center justify-between border-b border-black/5 bg-white/75 px-5 py-4 text-left backdrop-blur-sm"
+                className={`flex w-full items-center justify-between bg-white/90 px-5 py-4 text-left ${
+                  isCollapsed ? '' : 'border-b border-black/5'
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <span className={`h-3 w-3 rounded-full ${sectionStyles.accent}`} />
@@ -562,7 +564,7 @@ const PortfolioComponent = ({
                 </div>
               </button>
 
-              {!isCollapsed && <div className="divide-y divide-black/5">
+              {!isCollapsed && <div className="divide-y divide-black/5 bg-white/80">
                 {group.projects.map(project => (
                   <motion.div
                     key={project.id}
