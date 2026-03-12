@@ -13,7 +13,7 @@ const PdfPageStack: React.FC<PdfPageStackProps> = ({ pageCount, pageKeyPrefix, w
   }
 
   return (
-    <div className="w-full space-y-10 py-4">
+    <div className="w-full space-y-5 py-4">
       {Array.from({ length: pageCount }, (_, index) => (
         <div key={`${pageKeyPrefix}-${index + 1}`} className="flex justify-center">
           <div className="overflow-hidden rounded-[10px]">
