@@ -115,15 +115,15 @@ export default function About() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <GeometricBackground />
-      <div className="relative z-10 flex flex-1 items-center pb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-3xl mx-auto p-8 -translate-y-2"
-        >
-          <PublicPageHeading title="About Me" className="-translate-y-12 mb-8" />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 mx-auto flex-1 w-full max-w-4xl px-6 pb-16 sm:px-8"
+      >
+        <PublicPageHeading title="About Me" className="mb-24 mt-8" />
 
+        <div className="mx-auto max-w-3xl">
           <div className="prose prose-lg max-w-none prose-invert">
             {sortedSections.map(section => {
               const sanitizedContent = DOMPurify.sanitize(section.content, {
@@ -148,8 +148,8 @@ export default function About() {
               );
             })}
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
       <Footer />
     </div>
   );

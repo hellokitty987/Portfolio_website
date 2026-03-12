@@ -1,7 +1,7 @@
 export const PROJECT_CATEGORY_OPTIONS = [
+  { value: 'data_engineering_system_design', label: 'Data Engineering / System Design' },
   { value: 'data_science_ml', label: 'Data Science / ML' },
   { value: 'software_development', label: 'Software Development' },
-  { value: 'data_engineering_system_design', label: 'Data Engineering / System Design' },
   { value: 'bim', label: 'BIM' },
 ] as const;
 
