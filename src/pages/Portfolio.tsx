@@ -152,7 +152,7 @@ export default function Portfolio() {
                 className="h-full w-full object-contain"
               />
 
-              <div className="pointer-events-none absolute inset-0 z-10 bg-[#FECACA] opacity-0 transition-opacity duration-200 group-hover:opacity-65" />
+              <div className="pointer-events-none absolute inset-0 z-10 bg-[#FECACA] opacity-0 transition-opacity duration-200 group-hover:opacity-55" />
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                 <div className="max-w-full">
                   <h3 className="mb-1 line-clamp-2 text-[12px] font-semibold leading-snug text-black">
